@@ -83,7 +83,7 @@ These are known and deliberate, and each has a stated condition for revisiting i
 
 1. **Exceptions are logged, not routed.** Out-of-scope results are always excluded, so the gate prevents the exposure rather than merely detecting it. But the flagged record exists only in the user's local log; no one is notified. For a single user this is acceptable. Before team use, flagged exceptions must reach the unit security liaison.
 2. **The Confluence token is broad.** A Confluence personal access token carries the user's full permissions, including write, even though FindIT only reads. The documentation tells users to use the shortest expiry available, rotate it, and revoke it if a machine is compromised.
-3. **Scoping matches a result's immediate location.** A file in a subfolder of an approved Drive folder is not covered unless that subfolder is listed or the whole source is approved. This errs toward excluding too much, not too little.
+3. **Scoping matches a result's immediate location.** A file in a subfolder of an approved Drive folder is not covered unless that subfolder is listed or the whole source is approved. This errs toward excluding too much, not too little. Approving a whole source avoids it; making folder approval cover subfolders is a planned improvement.
 4. **The audit log contains the search query.** Queries are stored in plain text in the owner-only local log, since a query is needed to make the log useful for review.
 5. **The personal API key option sends data outside Cornell's AI Gateway.** It exists so people outside Cornell can run the tool. The documentation directs anyone searching Cornell data to use the gateway.
 6. **No rate limiting.** Search volume is bounded only by the user's own use.
@@ -92,7 +92,7 @@ These are known and deliberate, and each has a stated condition for revisiting i
 
 # Governance
 
-**Human oversight sits at the configuration layer, not the query layer.** A person decides, in `approved_sources.json`, which sources and locations may ever be sent to the AI step. Individual searches then need no approval, which keeps the tool fast without making the data decision implicit.
+**Human oversight sits at the configuration layer, not the query layer.** A person decides, in `approved_sources.json`, which sources may ever be sent to the AI step: a whole system with one line, or optionally specific folders or Confluence spaces. Approval is never per document. Individual searches then need no approval, which keeps the tool fast without making the data decision implicit.
 
 **Today (single user).** The developer is both the person who configures scope and the person accountable for it, and reviews the local audit log.
 
@@ -141,4 +141,6 @@ Future connectors (Teams, Jira, others) each start excluded and require their ow
 
 **What the framework contributed.** The most useful distinction remains the one between "is this data accessible" and "is using it this way permissible." The prototype worked long before the second question had an answer. Building the gate as the single path to the model, rather than as a setting a careful user could remember to turn on, is what turns that distinction into something the system enforces.
 
-**What would be stressed at scale.** The approved-sources list. As connectors are added, the default-deny posture is what keeps the system safe: a new source is excluded until someone deliberately clears it, so safety does not depend on anyone remembering to flag it.
+**What would be stressed at scale.** The approved-sources list, though not in the way the name might suggest. Approval is never per document. It is a decision about a whole system, or optionally about specific folders or Confluence spaces within it, recorded as one line per source (for example, `"confluence": {"approved": "all"}`). Once a source is approved, every document in it, including documents created later, can be ranked with no further approval.
+
+Scale stresses this list in two ways. First, new connectors: when Microsoft Teams, Jira, or another system is added, it is excluded until someone adds its line. If adding connectors becomes routine, that decision could become a rubber stamp, but forgetting it fails safe: less is sent, not more. Second, folder-level approval: because a folder approval covers only files directly in that folder, an organization that scopes by folder rather than by whole source would have to list every relevant subfolder, which becomes tedious for deep folder trees. Approving whole sources avoids this, and making folder approval cover subfolders is a planned improvement.
