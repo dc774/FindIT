@@ -1,0 +1,7 @@
+google-auth==2.54.0
+google-auth-oauthlib==1.4.0
+google-api-python-client==2.197.0
+box-sdk-gen==1.17.0
+anthropic==0.109.1
+requests==2.34.2
+python-dotenv==1.2.2

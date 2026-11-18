@@ -1,0 +1,28 @@
+# Secrets: never commit these. Each user supplies their own (see the *.example.json templates).
+drive_credentials.json
+box_credentials.json
+confluence_credentials.json
+
+# Local gateway key (.env.example is the committed template)
+.env
+
+# Per-user data-scoping config (approved_sources.example.json is the committed template)
+approved_sources.json
+
+# Cached OAuth tokens (normally live in ~/.findit, ignored here just in case)
+*token*.json
+box_token*
+.findit/
+
+# Local tooling / editor / OS noise (.claude may hold local keys)
+.claude/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Overrides ~/.gitignore_global, which ignores ARCHITECTURE.md; this repo publishes it
+!ARCHITECTURE.md

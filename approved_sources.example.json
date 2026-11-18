@@ -1,0 +1,7 @@
+{
+  "_comment": "Copy this file to approved_sources.json, then keep only the sources you want the AI re-ranking step to receive. DEFAULT-DENY: any source not listed here is never sent to the AI (it is still searchable in raw / --no-llm mode, which makes no external call). The simplest setup is \"approved\": \"all\" for each source you have reviewed -- as shown below. You do NOT need folder ids.",
+  "google_drive": { "approved": "all" },
+  "box": { "approved": "all" },
+  "confluence": { "approved": "all" },
+  "_optional_finer_control": "Instead of \"all\", you can approve only specific locations by listing ids -- Google Drive folder ids, Box folder ids, or Confluence space keys. Example:  \"confluence\": { \"approved\": [\"ITOPS\", \"HR\"] }"
+}
