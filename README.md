@@ -73,7 +73,7 @@ You register your own Google and Box apps and create your own Confluence token, 
 Clone the repository (or download it) and open a terminal in the folder:
 
 ```bash
-git clone <repository-url> FindIT
+git clone https://github.com/dc774/FindIT.git
 cd FindIT
 ```
 
