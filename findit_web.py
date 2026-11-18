@@ -47,7 +47,7 @@ if not any(_SOURCES.values()):
           "(Confluence). See the README.")
     sys.exit(1)
 
-_USE_LLM = findit.gateway_configured()
+_USE_LLM = findit.llm_mode() is not None
 
 # Authenticate the configured sources once at startup and reuse across requests.
 _enabled = [label for key, label in
@@ -59,14 +59,14 @@ _drive_service = findit.get_drive_service() if _SOURCES["drive"] else None
 _box_client = findit.get_box_client() if _SOURCES["box"] else None
 _confluence_config = findit.get_confluence_config() if _SOURCES["confluence"] else None
 if not _USE_LLM:
-    print("No gateway key configured; results will be returned raw (no AI ranking).")
+    print(f"AI ranking off ({findit.llm_off_reason()}); results will be returned raw.")
 
 # Single-user local tool: run one search at a time to keep the reused clients safe.
 _search_lock = threading.Lock()
 
 
 def search_and_rank(query: str) -> list[dict]:
-    """Search the configured sources, merge, and (if a gateway key is set) re-rank.
+    """Search the configured sources, merge, and (if an API or gateway key is set) re-rank.
     Returns the ranked list, or raw merged results when AI ranking is off."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {}

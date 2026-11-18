@@ -46,7 +46,7 @@ SOURCE_KEYS = {"Google Drive": "google_drive", "Box": "box", "Confluence": "conf
 DRIVE_SCOPES   = ["https://www.googleapis.com/auth/drive.readonly"]
 MAX_RESULTS    = 50   # results to fetch per source before Claude re-ranks
 TOP_N          = 8    # how many results to show after re-ranking
-CLAUDE_MODEL   = "claude-haiku-4-5"  # fast + cheap for re-ranking; bare ID (the Cornell AI Gateway rejects date-suffixed IDs and aliases with a 403)
+CLAUDE_MODEL   = "claude-haiku-4-5"  # default re-rank model; override with FINDIT_MODEL in .env. Bare ID (the Cornell AI Gateway rejects date-suffixed IDs and aliases with a 403)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -170,10 +170,31 @@ def configured_sources() -> dict:
     }
 
 
-def gateway_configured() -> bool:
-    """True if the Cornell AI Gateway key is set. When absent, FindIT returns raw
-    results without the Claude re-ranking step (nothing leaves the boundary)."""
-    return bool(os.environ.get("ANTHROPIC_BASE_URL") and os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+def llm_mode():
+    """Which Claude connection is configured for re-ranking:
+    "gateway"   - Cornell AI Gateway (ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN)
+    "anthropic" - your own Anthropic API key (ANTHROPIC_API_KEY)
+    None        - neither; FindIT returns raw results and nothing leaves the boundary.
+    The gateway wins if both are set. An API key is only used when ANTHROPIC_BASE_URL
+    is unset: the SDK would otherwise send it to that URL (e.g. the gateway)."""
+    base_url = os.environ.get("ANTHROPIC_BASE_URL")
+    if base_url and os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        return "gateway"
+    if os.environ.get("ANTHROPIC_API_KEY") and not base_url:
+        return "anthropic"
+    return None
+
+
+def llm_off_reason() -> str:
+    """Why AI ranking is off when llm_mode() is None, for the user-facing notice."""
+    if os.environ.get("ANTHROPIC_BASE_URL") and not os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        return "ANTHROPIC_BASE_URL is set without ANTHROPIC_AUTH_TOKEN; remove it to use ANTHROPIC_API_KEY"
+    return "no API or gateway key configured"
+
+
+def claude_model() -> str:
+    """Re-rank model: FINDIT_MODEL from .env/shell if set, else the CLAUDE_MODEL default."""
+    return os.environ.get("FINDIT_MODEL") or CLAUDE_MODEL
 
 
 def load_approved_sources() -> dict:
@@ -429,17 +450,21 @@ Return ONLY a JSON array of the top {TOP_N} most relevant file numbers in order,
 Format exactly like this, with no other text:
 [{{"rank": 1, "file_number": 3, "reason": "..."}}, ...]"""
 
-    # Route through the Cornell AI Gateway: base_url points at the gateway and
-    # auth_token sends "Authorization: Bearer <key>" (the gateway's scheme). We do
-    # not pass api_key, so no x-api-key header is sent and there is no risk of the
-    # SDK sending both headers (which the gateway would reject). main()/findit_web.py
-    # verify both env vars are set before any search runs.
-    client = anthropic.Anthropic(
-        base_url=os.environ["ANTHROPIC_BASE_URL"],
-        auth_token=os.environ["ANTHROPIC_AUTH_TOKEN"],
-    )
+    # Passing exactly one credential explicitly means the SDK ignores the other
+    # credential env vars, so only one auth header is ever sent (the gateway
+    # rejects requests carrying both). Callers check llm_mode() before any search.
+    if llm_mode() == "gateway":
+        # Cornell AI Gateway: auth_token sends "Authorization: Bearer <key>".
+        client = anthropic.Anthropic(
+            base_url=os.environ["ANTHROPIC_BASE_URL"],
+            auth_token=os.environ["ANTHROPIC_AUTH_TOKEN"],
+        )
+    else:
+        # Your own Anthropic API key, sent as x-api-key. llm_mode() guarantees
+        # ANTHROPIC_BASE_URL is unset, so this goes to the SDK's default endpoint.
+        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     message = client.messages.create(
-        model=CLAUDE_MODEL,
+        model=claude_model(),
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -544,7 +569,7 @@ def main():
               "(Confluence). See the README.")
         sys.exit(1)
 
-    use_llm = gateway_configured() and not no_llm
+    use_llm = llm_mode() is not None and not no_llm
 
     enabled = [label for key, label in
                (("drive", "Google Drive"), ("box", "Box"), ("confluence", "Confluence"))
@@ -592,7 +617,10 @@ def main():
             result = scope_and_rerank(query, files)
         except Exception as e:
             print(f"Ranking step failed: {e}")
-            print("This usually means a Cornell AI Gateway problem (invalid key, wrong model, or a rate limit). Check ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN in your .env.")
+            keys = ("ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN" if llm_mode() == "gateway"
+                    else "ANTHROPIC_API_KEY")
+            print(f"This usually means an invalid key, an unavailable model ({claude_model()}), "
+                  f"or a rate limit. Check {keys} and FINDIT_MODEL in your .env.")
             sys.exit(1)
         ranked = result.ranked
         if not result.configured:
@@ -603,7 +631,7 @@ def main():
             if not ranked:
                 print("No results were within approved scope for this query.")
     else:
-        why = "--no-llm" if no_llm else "no gateway key configured"
+        why = "--no-llm" if no_llm else llm_off_reason()
         print(f"Found {len(files)} files ({counts}). AI ranking off ({why}); showing raw results.")
         log_search(query, mode="raw")
         ranked = files

@@ -39,7 +39,7 @@ At Cornell, our team's documents are spread across Google Drive, Box, and Conflu
 
 1. **Search in parallel.** The query goes to Google Drive, Box, and Confluence at the same time, using each one's own API and the user's own credentials. Each source is optional.
 2. **Data-scoping gate.** Before anything is sent to the model, each result is checked against `approved_sources.json`. The default is deny: a result is sent only if its source (or its specific folder or Confluence space) has been explicitly approved.
-3. **AI re-ranking.** Approved results are sent to Claude Haiku through the Cornell AI Gateway, which returns the top matches with a one-line reason for each.
+3. **AI re-ranking.** Approved results are sent to Claude (Haiku by default) through either the Cornell AI Gateway or your own Anthropic API key, and Claude returns the top matches with a one-line reason for each.
 4. **Results.** Shown in the terminal, or as clickable cards in a small local web page.
 
 ## Design choices
@@ -48,9 +48,9 @@ FindIT handles institutional data, so most of the design work went into deciding
 
 - **The model ranks results; it never fetches them.** Search runs as the signed-in user, so FindIT can only find what that person can already open. The LLM only sees the short metadata (title, excerpt, owner, location) for results that pass the gate.
 - **Default-deny scoping at the one outbound boundary.** There is exactly one function that calls the model, and it applies the scoping gate first, so nothing can reach the model without passing that check. New sources are excluded until someone approves them.
-- **It works without AI.** With no gateway key, no approved sources, or the `--no-llm` flag, FindIT returns raw merged results and makes no outside call.
+- **It works without AI.** With no API or gateway key, no approved sources, or the `--no-llm` flag, FindIT returns raw merged results and makes no outside call.
 - **Audit without a second copy of the data.** Each search is logged locally with hashed document references, never file names or contents.
-- **Bring your own credentials.** Every user registers their own Google and Box apps and uses their own Confluence token and gateway key. No secrets are shared or stored in the repository.
+- **Bring your own credentials.** Every user registers their own Google and Box apps and uses their own Confluence token and Claude API or gateway key. No secrets are shared or stored in the repository.
 - **Small, readable footprint.** Two Python files and a standard-library web server, with pinned dependencies.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design.
@@ -66,7 +66,7 @@ Before you start:
 - **Python 3.9 or later** with `pip`. Check with `python3 --version`, and use the *same* `python3` to install dependencies and to run FindIT.
 - **A Cornell account**, for whichever of Google Drive, Box, and Confluence you set up.
 - **At least one source configured** (Google Drive, Box, and/or Confluence). Each is optional; set up only the ones you want. Setup step 4 covers all three.
-- **A Cornell AI Gateway key** (optional but recommended). FindIT uses Claude to re-rank results, routed through Cornell's AI Gateway. With a key, results are AI-ranked; without one (or with `--no-llm`), FindIT returns raw search results and nothing leaves the Cornell boundary. Create a key in the gateway's Virtual Keys section.
+- **A Claude key** (optional but recommended). FindIT uses Claude to re-rank results. Use either a **Cornell AI Gateway key** (create one in the gateway's Virtual Keys section) or **your own Anthropic API key** from the [Claude Console](https://platform.claude.com) (billed pay-as-you-go; a Claude Pro chat subscription does not include API access). With a key, results are AI-ranked; without one (or with `--no-llm`), FindIT returns raw search results and makes no external call.
 
 You register your own Google and Box apps and create your own Confluence token, so FindIT always runs as you.
 
@@ -93,15 +93,24 @@ python3 -m pip install -r requirements.txt
 
 That is the only install step. No virtual environment is required. (If you prefer to keep these packages isolated, a venv works too, but it is optional.)
 
-### 3. Add your Cornell AI Gateway key (for AI ranking)
+### 3. Add a Claude key (for AI ranking)
 
-FindIT reads the gateway settings from a local `.env` file that stays on your machine:
+FindIT reads its Claude settings from a local `.env` file that stays on your machine:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and set `ANTHROPIC_AUTH_TOKEN` to your Cornell AI Gateway key; leave `ANTHROPIC_BASE_URL` as is. This step is optional: without a gateway key (or when you pass `--no-llm`), FindIT skips re-ranking and returns raw results with no external call. A value exported in your shell takes precedence over `.env`.
+Open `.env` and uncomment **one** option:
+
+- **Option A, your own Anthropic API key:** set `ANTHROPIC_API_KEY`.
+- **Option B, Cornell AI Gateway:** set `ANTHROPIC_AUTH_TOKEN` to your gateway key and keep `ANTHROPIC_BASE_URL` as given. If both options are set, the gateway is used. For Option A, leave `ANTHROPIC_BASE_URL` commented out.
+
+> **Which to choose:** if you are searching Cornell data, use the Cornell AI Gateway. Option A sends result metadata (titles, excerpts, owners) to your personal Anthropic account, outside Cornell's agreements.
+
+You can also set `FINDIT_MODEL` to choose the Claude model that ranks results (default `claude-haiku-4-5`). The Cornell AI Gateway accepts only the model IDs it has enabled.
+
+This step is optional: with no key (or when you pass `--no-llm`), FindIT skips re-ranking and returns raw results with no external call. A value exported in your shell takes precedence over `.env`.
 
 ### 4. Configure the sources you want
 
@@ -184,9 +193,9 @@ Tips for better results:
 - Skip filler words like "document", "spreadsheet", "I need", or "please find".
 - Fewer, more specific words usually rank better.
 
-FindIT searches whichever sources you configured, merges the results, and, when a gateway key is set, shows the top matches AI-ranked with a one-line reason each. Without a gateway key (or with `--no-llm`), it shows raw results and makes no external call. How access works: you sign in to Google and Box as yourself and use your own Confluence token, so you only ever see data you already have access to.
+FindIT searches whichever sources you configured, merges the results, and, when a Claude key is set, shows the top matches AI-ranked with a one-line reason each. Without a key (or with `--no-llm`), it shows raw results and makes no external call. How access works: you sign in to Google and Box as yourself and use your own Confluence token, so you only ever see data you already have access to.
 
-When enabled, ranking runs on Claude Haiku through the Cornell AI Gateway.
+When enabled, ranking runs on Claude Haiku by default (change it with `FINDIT_MODEL`), through the Cornell AI Gateway or your own Anthropic API key.
 
 ---
 
@@ -196,9 +205,11 @@ When enabled, ranking runs on Claude Haiku through the Cornell AI Gateway.
 
 **`No sources configured`**: set up at least one source in step 4 (`drive_credentials.json`, `box_credentials.json`, or `confluence_credentials.json`).
 
-**Results come back without AI ranking**: that is expected when no gateway key is set or you passed `--no-llm`. Add your Cornell AI Gateway key to `.env` (step 3) to enable re-ranking.
+**Results come back without AI ranking**: that is expected when no Claude key is set or you passed `--no-llm`. Add an Anthropic API key or Cornell AI Gateway key to `.env` (step 3) to enable re-ranking.
 
-**Everything comes back raw even with a gateway key, or "No approved sources configured"**: you have not set up `approved_sources.json` (step 5). Until you approve at least one source, nothing is sent to the AI step. **"N result(s) outside approved scope were excluded"**: those results came from locations not in `approved_sources.json`; add the folder ID or space key if they should be ranked.
+**"Ranking step failed"**: usually an invalid key, a model your key cannot use, or a rate limit. Check the key in `.env`, and if you set `FINDIT_MODEL`, try removing it to use the default.
+
+**Everything comes back raw even with a key, or "No approved sources configured"**: you have not set up `approved_sources.json` (step 5). Until you approve at least one source, nothing is sent to the AI step. **"N result(s) outside approved scope were excluded"**: those results came from locations not in `approved_sources.json`; add the folder ID or space key if they should be ranked.
 
 **Confluence returns nothing, or a 401 error**: your token in `confluence_credentials.json` is missing, wrong, or expired. Create a new one (step 4) and update the file.
 
