@@ -46,14 +46,14 @@ At Cornell, our team's documents are spread across Google Drive, Box, and Conflu
 
 FindIT handles institutional data, so most of the design work went into deciding what the AI is allowed to see:
 
-- **The model ranks results; it never fetches them.** Search runs as the signed-in user, so FindIT can only find what that person can already open. The LLM only sees the short metadata (title, excerpt, owner, location) for results that pass the gate.
+- **The model ranks results; it never fetches them.** Search runs as the signed-in user, so FindIT can only find what that person can already open. For results that pass the gate, the model sees only the query, each file's name and modified date, and (for Confluence pages) an excerpt of up to 200 characters. It never receives full documents.
 - **Default-deny scoping at the one outbound boundary.** There is exactly one function that calls the model, and it applies the scoping gate first, so nothing can reach the model without passing that check. New sources are excluded until someone approves them.
 - **It works without AI.** With no API or gateway key, no approved sources, or the `--no-llm` flag, FindIT returns raw merged results and makes no outside call.
 - **Audit without a second copy of the data.** Each search is logged locally with hashed document references, never file names or contents.
 - **Bring your own credentials.** Every user registers their own Google and Box apps and uses their own Confluence token and Claude API or gateway key. No secrets are shared or stored in the repository.
 - **Small, readable footprint.** Two Python files and a standard-library web server, with pinned dependencies.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design.
+For the security model, how each control was verified, and the known limits, see [SECURITY.md](SECURITY.md) and the [Security and Implementation Plan](docs/IMPLEMENTATION_PLAN.md). [ARCHITECTURE.md](ARCHITECTURE.md) covers the full technical design.
 
 ---
 
@@ -106,7 +106,7 @@ Open `.env` and uncomment **one** option:
 - **Option A, your own Anthropic API key:** set `ANTHROPIC_API_KEY`.
 - **Option B, Cornell AI Gateway:** set `ANTHROPIC_AUTH_TOKEN` to your gateway key and keep `ANTHROPIC_BASE_URL` as given. If both options are set, the gateway is used. For Option A, leave `ANTHROPIC_BASE_URL` commented out.
 
-> **Which to choose:** if you are searching Cornell data, use the Cornell AI Gateway. Option A sends result metadata (titles, excerpts, owners) to your personal Anthropic account, outside Cornell's agreements.
+> **Which to choose:** if you are searching Cornell data, use the Cornell AI Gateway. Option A sends the query, file names, and excerpts to your personal Anthropic account instead of through Cornell's AI Gateway.
 
 You can also set `FINDIT_MODEL` to choose the Claude model that ranks results (default `claude-haiku-4-5`). The Cornell AI Gateway accepts only the model IDs it has enabled.
 
