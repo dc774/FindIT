@@ -15,6 +15,7 @@ FindIT/
 ├── findit_web.py                        # Optional local browser UI (stdlib http.server; imports findit.py)
 ├── requirements.txt                     # Python dependencies (pinned)
 ├── README.md, ARCHITECTURE.md, LICENSE
+├── docs/                                # README images: logo.png, screenshot.png (rendered from the real page with sample data)
 ├── .env.example                         # Template for .env (committed)
 ├── *_credentials.example.json           # Templates for the Drive / Box / Confluence credentials (committed)
 ├── approved_sources.example.json        # Template for the data-scoping config (committed)

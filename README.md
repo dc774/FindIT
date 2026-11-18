@@ -1,8 +1,14 @@
+<p align="center"><img src="docs/logo.png" alt="FindIT logo" width="120"></p>
+
 # FindIT
 
 FindIT searches Google Drive, Box, and Confluence at once from a plain-English query, then uses Claude to rank the most relevant results. Run it from the terminal or in your browser.
 
-Example (terminal):
+![FindIT browser view showing five ranked results from Google Drive, Confluence, and Box, each with a one-line reason](docs/screenshot.png)
+
+*Browser view, shown with sample data.*
+
+The same search in the terminal:
 
 ```
 FindIT results for: "onboarding checklist"
