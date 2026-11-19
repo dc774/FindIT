@@ -4,9 +4,9 @@
 
 FindIT searches Google Drive, Box, and Confluence at once from a plain-English query, then uses Claude to rank the most relevant results. Run it from the terminal or in your browser.
 
-![FindIT browser view showing five ranked results from Google Drive, Confluence, and Box, each with a one-line reason](docs/screenshot.png)
+![FindIT browser view: a search for "onboarding checklist" with source tabs, five ranked results from Google Drive, Confluence, and Box (each with a one-line reason), and a sidebar with search tips and a summary of the results](docs/screenshot.png)
 
-*Browser view, shown with sample data.*
+*Browser view, shown with sample data and trimmed to five results (FindIT shows up to 10).*
 
 The same search in the terminal:
 
@@ -40,7 +40,7 @@ At Cornell, our team's documents are spread across Google Drive, Box, and Conflu
 1. **Search in parallel.** The query goes to Google Drive, Box, and Confluence at the same time, using each one's own API and the user's own credentials. Each source is optional.
 2. **Data-scoping gate.** Before anything is sent to the model, each result is checked against `approved_sources.json`. The default is deny: a result is sent only if its source (or its specific folder or Confluence space) has been explicitly approved.
 3. **AI re-ranking.** Approved results are sent to Claude (Haiku by default) through either the Cornell AI Gateway or your own Anthropic API key, and Claude returns the top matches with a one-line reason for each.
-4. **Results.** Shown in the terminal, or as clickable cards in a small local web page.
+4. **Results.** Shown in the terminal, or in a small local web page styled after Cornell's search results, with tabs to filter by source.
 
 ## Design choices
 
