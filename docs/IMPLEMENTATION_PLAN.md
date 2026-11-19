@@ -34,7 +34,7 @@ FindIT is published as open source at <https://github.com/dc774/FindIT> under th
 3. **Re-rank.** Approved results are sent to Claude (Claude Haiku by default) through the Cornell AI Gateway or, if the user chooses, their own Anthropic API key.
 4. **Display.** Ranked results are shown in the terminal or a local web page.
 
-The re-ranking request is FindIT's **only** outbound transmission besides the searches themselves. It contains:
+The re-ranking request is FindIT's **only** outbound transmission of search or document data besides the searches themselves. (If the user opts in to Cornell's brand typeface, the web page also loads font files from Adobe Fonts; that request carries no search or document data.) It contains:
 
 - the search query;
 - each approved result's file name and last-modified date;

@@ -45,7 +45,7 @@ SOURCE_KEYS = {"Google Drive": "google_drive", "Box": "box", "Confluence": "conf
 
 DRIVE_SCOPES   = ["https://www.googleapis.com/auth/drive.readonly"]
 MAX_RESULTS    = 50   # results to fetch per source before Claude re-ranks
-TOP_N          = 8    # how many results to show after re-ranking
+TOP_N          = 10   # how many results to show after re-ranking
 CLAUDE_MODEL   = "claude-haiku-4-5"  # default re-rank model; override with FINDIT_MODEL in .env. Bare ID (the Cornell AI Gateway rejects date-suffixed IDs and aliases with a 403)
 # ─────────────────────────────────────────────────────────────────────────────
 

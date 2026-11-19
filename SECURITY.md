@@ -6,6 +6,8 @@ FindIT reads institutional documents, so it was designed around one question: wh
 
 Besides the searches themselves (sent to Google Drive, Box, and Confluence under the user's own accounts), FindIT makes one outbound call: the optional AI re-ranking request. It contains only the search query, each approved result's file name and modified date, and, for Confluence pages, an excerpt of up to 200 characters. Never full documents, owners, folders, or links.
 
+One optional, data-free exception: if you set `FINDIT_ADOBE_FONTS_ID` to use Cornell's brand typeface, the web page loads font files from Adobe Fonts. That request carries no search terms or document data (the page sends no referrer). Without that setting, the page makes no outside requests.
+
 ## Key controls
 
 - **Default-deny data scoping.** Nothing is sent to the model unless its source or location is listed in `approved_sources.json`. A missing or invalid file blocks everything; a new source is excluded until someone approves it.
@@ -14,7 +16,7 @@ Besides the searches themselves (sent to Google Drive, Box, and Confluence under
 - **Audit log without a second copy of the data.** Each search is logged locally with hashed document references, never names or contents.
 - **No secrets in the repository.** Templates only. Each user supplies their own Google, Box, Confluence, and Claude credentials and runs their own copy, so everyone searches as themselves. Git history was scanned before publishing; GitHub secret scanning and push protection are on.
 - **Read-only.** FindIT only searches. Google Drive uses the read-only scope, and FindIT has no code path that writes to any source.
-- **Hardened inputs and outputs.** Search terms are escaped; Box sign-in uses an OAuth `state` check; model output is bounds-checked and rendered as plain text; the web page renders only `http`/`https` links and listens on `127.0.0.1` only; credential and log files are owner-only.
+- **Hardened inputs and outputs.** Search terms are escaped; Box sign-in uses an OAuth `state` check; model output is bounds-checked and rendered as plain text; the web page renders only `http`/`https` links, sends no referrer (so searches in its address bar never reach the sites you open), and listens on `127.0.0.1` only; credential and log files are owner-only.
 
 ## Known limits
 

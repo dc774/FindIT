@@ -110,6 +110,8 @@ Open `.env` and uncomment **one** option:
 
 You can also set `FINDIT_MODEL` to choose the Claude model that ranks results (default `claude-haiku-4-5`). The Cornell AI Gateway accepts only the model IDs it has enabled.
 
+The browser page uses Cornell's brand typography: Palatino for headings, and Freight Sans Pro for body text if you set `FINDIT_ADOBE_FONTS_ID` to an Adobe Fonts web project ID (see `.env.example`). Without it, the page uses a system sans-serif and makes no outside requests.
+
 This step is optional: with no key (or when you pass `--no-llm`), FindIT skips re-ranking and returns raw results with no external call. A value exported in your shell takes precedence over `.env`.
 
 ### 4. Configure the sources you want
@@ -117,7 +119,7 @@ This step is optional: with no key (or when you pass `--no-llm`), FindIT skips r
 Set up **at least one** of the following. Each is optional; FindIT searches only the sources whose credential files are present.
 
 **Google Drive** (register your own OAuth client):
-1. In the Google Cloud Console, create or select a project, enable the Google Drive API, and configure an OAuth consent screen (Internal).
+1. In the Google Cloud Console, create or select a project, enable the Google Drive API, and configure an OAuth consent screen. With a Cornell (or other Google Workspace) account, choose **Internal**. With a personal Gmail account, Internal is not offered: choose **External** and add your own Google address under **Test users**.
 2. Create an OAuth client ID of type **Desktop app**, download its JSON, and save it as `drive_credentials.json` in the FindIT folder. (`drive_credentials.example.json` shows the expected shape.)
 
 **Box** (register your own app):
@@ -135,7 +137,7 @@ Set up **at least one** of the following. Each is optional; FindIT searches only
    ```bash
    cp confluence_credentials.example.json confluence_credentials.json
    ```
-3. Open `confluence_credentials.json`, paste your token into the `"token"` field, and leave `"base_url"` as is.
+3. Open `confluence_credentials.json`, paste your token into the `"token"` field. `"base_url"` is set to Cornell's Confluence; if you use a different Confluence site, change it to that site's address (for example `https://confluence.example.org`, with no trailing slash).
 
 ### 5. Approve sources for AI ranking (data scoping)
 
@@ -170,9 +172,10 @@ Browser:
 
 ```bash
 python3 findit_web.py
+python3 findit_web.py "onboarding checklist"   # opens with this search already run
 ```
 
-The browser version starts a small local server and opens `http://127.0.0.1:8000`. Press Ctrl+C in the terminal to stop it.
+The browser version starts a small local server and opens `http://127.0.0.1:8000`. If you include a search, the page opens with the results already showing. Each search also appears in the address bar (`?q=...`), so reloading or bookmarking the page re-runs it. Press Ctrl+C in the terminal to stop the server.
 
 **First run:** for each of Google and Box that you configured, the browser opens once so you can sign in with your Cornell account and approve read access. After that, your logins are cached in `~/.findit/` and you will not be asked again. Confluence uses the token from step 4, so it never opens a browser.
 
